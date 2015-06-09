@@ -520,10 +520,10 @@ static int compute_pkt_fields2(AVFormatContext *s, AVStream *st, AVPacket *pkt)
         ((!(s->oformat->flags & AVFMT_TS_NONSTRICT) &&
           st->codec->codec_type != AVMEDIA_TYPE_SUBTITLE &&
           st->cur_dts >= pkt->dts) || st->cur_dts > pkt->dts)) {
-        av_log(s, AV_LOG_ERROR,
-               "Application provided invalid, non monotonically increasing dts to muxer in stream %d: %s >= %s\n",
+/*        av_log(s, AV_LOG_ERROR,
+               "SKIPPED Application provided invalid, non monotonically increasing dts to muxer in stream %d: %s >= %s\n",
                st->index, av_ts2str(st->cur_dts), av_ts2str(pkt->dts));
-        return AVERROR(EINVAL);
+        return AVERROR(EINVAL);*/
     }
     if (pkt->dts != AV_NOPTS_VALUE && pkt->pts != AV_NOPTS_VALUE && pkt->pts < pkt->dts) {
         av_log(s, AV_LOG_ERROR,

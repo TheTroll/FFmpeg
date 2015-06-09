@@ -91,6 +91,8 @@ int ff_qsv_init_internal_session(AVCodecContext *avctx, mfxSession *session)
         return ff_qsv_error(ret);
     }
 
+    av_log(avctx, AV_LOG_INFO, "MFXInit returned %d\n", ret);
+
     MFXQueryIMPL(*session, &impl);
 
     switch (MFX_IMPL_BASETYPE(impl)) {
@@ -107,7 +109,7 @@ int ff_qsv_init_internal_session(AVCodecContext *avctx, mfxSession *session)
         desc = "unknown";
     }
 
-    av_log(avctx, AV_LOG_VERBOSE,
+    av_log(avctx, AV_LOG_INFO,
            "Initialized an internal MFX session using %s implementation\n",
            desc);
 
