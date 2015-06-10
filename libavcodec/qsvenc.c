@@ -215,14 +215,18 @@ int ff_qsv_enc_init(AVCodecContext *avctx, QSVEncContext *q)
 
     // open hardware
     {
+        const char *cardpath = getenv("MFX_DRM_CARD");
         int card;
         VADisplay va_display;
         int ver_maj = 1;
         int ver_min = 0;
 
+        if (!cardpath)
+           cardpath = "/dev/dri/card0";
+
         av_log(avctx, AV_LOG_INFO, "Opening VA Manually\n"); 
 
-        card = open("/dev/dri/card0", O_RDWR); // primary card
+        card = open(cardpath, O_RDWR); // primary card
         if(card < 0){
             av_log(avctx, AV_LOG_ERROR, "open /dev/dri/card0 error!\n"); 
             return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
