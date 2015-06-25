@@ -25,6 +25,11 @@
 #include "avcodec.h"
 #include "qsv_internal.h"
 
+#include <unistd.h>
+#include <fcntl.h>
+#include "va/va.h"
+#include "va/va_drm.h"
+
 int ff_qsv_codec_id_to_mfx(enum AVCodecID codec_id)
 {
     switch (codec_id) {
@@ -92,6 +97,45 @@ int ff_qsv_init_internal_session(AVCodecContext *avctx, mfxSession *session)
     }
 
     av_log(avctx, AV_LOG_INFO, "MFXInit returned %d\n", ret);
+
+    // open hardware
+    {
+        const char *cardpath = getenv("MFX_DRM_CARD");
+        int card;
+        VADisplay va_display;
+        int ver_maj = 1;
+        int ver_min = 0;
+        int ret;
+
+        if (!cardpath)
+           cardpath = "/dev/dri/card1";
+
+        av_log(avctx, AV_LOG_INFO, "Opening VA Manually\n"); 
+
+        card = open(cardpath, O_RDWR); // primary card
+        if(card < 0){
+            av_log(avctx, AV_LOG_ERROR, "open /dev/dri/card0 error!\n"); 
+            return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
+        }
+        va_display = vaGetDisplayDRM(card);
+        if (!va_display)
+        {
+             close(card);
+             av_log(avctx, AV_LOG_ERROR, "vaGetDisplayDRM error!\n"); 
+             return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
+        }
+
+        ret=vaInitialize(va_display, &ver_maj, &ver_min);
+        if (ret){
+            av_log(avctx, AV_LOG_ERROR, "vaInitialize error! ret:%d\n", ret); 
+            return ret;
+        }
+        ret = MFXVideoCORE_SetHandle(*session, MFX_HANDLE_VA_DISPLAY, (mfxHDL) va_display);
+            if (ret < 0){
+            av_log(avctx, AV_LOG_ERROR, "MFXVideoCORE_SetHandle error! ret:%d\n", ret); 
+            return ret;
+        }
+    }
 
     MFXQueryIMPL(*session, &impl);
 
