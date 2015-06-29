@@ -602,3 +602,62 @@ void av_packet_rescale_ts(AVPacket *pkt, AVRational src_tb, AVRational dst_tb)
     if (pkt->convergence_duration > 0)
         pkt->convergence_duration = av_rescale_q(pkt->convergence_duration, src_tb, dst_tb);
 }
+
+int ff_packet_list_put(AVPacketList **head, AVPacketList **tail,
+                       AVPacket *pkt)
+{
+    AVPacketList *pl = av_mallocz(sizeof(AVPacketList));
+    int ret;
+
+    if (!pl)
+        return AVERROR(ENOMEM);
+
+    if ((ret = av_packet_ref(&pl->pkt, pkt)) < 0) {
+        av_free(pl);
+        return ret;
+    }
+
+    if (*head)
+        (*tail)->next = pl;
+    else
+        *head = pl;
+
+    *tail = pl;
+
+    return 0;
+}
+
+int ff_packet_list_get(AVPacketList **head, AVPacketList **tail,
+                       AVPacket *pkt)
+{
+    AVPacketList *pl = *head;
+    if (!pl)
+        return AVERROR_EOF;
+
+    av_packet_move_ref(pkt, &pl->pkt);
+
+    *head = pl->next;
+
+    if (!pl->next)
+        tail = NULL;
+
+    av_free(pl);
+
+    return 0;
+}
+
+void ff_packet_list_free(AVPacketList **head, AVPacketList **tail)
+{
+    AVPacketList *pl;
+
+    while (pl = *head) {
+        *head = pl->next;
+        av_packet_unref(&pl->pkt);
+        av_free(pl);
+    }
+    *tail = NULL;
+}
+
+
+
+

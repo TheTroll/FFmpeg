@@ -73,7 +73,7 @@ static int init_video_param(AVCodecContext *avctx, QSVEncContext *q)
     q->param.mfx.FrameInfo.CropH          = avctx->height;
     q->param.mfx.FrameInfo.AspectRatioW   = avctx->sample_aspect_ratio.num;
     q->param.mfx.FrameInfo.AspectRatioH   = avctx->sample_aspect_ratio.den;
-    q->param.mfx.FrameInfo.PicStruct      = MFX_PICSTRUCT_PROGRESSIVE;
+    q->param.mfx.FrameInfo.PicStruct      = MFX_PICSTRUCT_FIELD_TFF;
     q->param.mfx.FrameInfo.ChromaFormat   = MFX_CHROMAFORMAT_YUV420;
     q->param.mfx.FrameInfo.BitDepthLuma   = 8;
     q->param.mfx.FrameInfo.BitDepthChroma = 8;

@@ -33,6 +33,8 @@
 #include "avcodec.h"
 #include "config.h"
 
+#include "libavformat/avformat.h"
+
 /**
  * The codec does not modify any global variables in the init function,
  * allowing to call the init function without locking any global mutexes.
@@ -293,5 +295,13 @@ int ff_get_format(AVCodecContext *avctx, const enum AVPixelFormat *fmt);
  * Set various frame properties from the codec context / packet data.
  */
 int ff_decode_frame_props(AVCodecContext *avctx, AVFrame *frame);
+
+int ff_packet_list_put(AVPacketList **head, AVPacketList **tail,
+                       AVPacket *pkt);
+
+int ff_packet_list_get(AVPacketList **head, AVPacketList **tail,
+                       AVPacket *pkt);
+
+void ff_packet_list_free(AVPacketList **head, AVPacketList **tail);
 
 #endif /* AVCODEC_INTERNAL_H */
