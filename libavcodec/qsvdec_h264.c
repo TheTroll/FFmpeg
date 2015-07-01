@@ -71,7 +71,10 @@ static int qsv_dec_init_internal(AVCodecContext *avctx, AVPacket *avpkt)
 
         q->bsf = av_bitstream_filter_init("h264_mp4toannexb");
         if (!q->bsf)
+        {
+            av_log(avctx, AV_LOG_INFO, "av_bitstream_filter_init failed\n");
             goto fail;
+        }
 
         FFSWAP(uint8_t *, avctx->extradata,      q->extradata);
         FFSWAP(int,       avctx->extradata_size, q->extradata_size);
@@ -89,7 +92,10 @@ static int qsv_dec_init_internal(AVCodecContext *avctx, AVPacket *avpkt)
     //FIXME feed it a fake IDR directly
     tmp = av_malloc(header_size + sizeof(fake_idr));
     if (!tmp)
+    {
+        av_log(avctx, AV_LOG_INFO, "av_malloc failed\n");
         goto fail;
+    }
     bs->Data       = tmp;
     bs->DataLength = header_size + sizeof(fake_idr);
     bs->MaxLength  = bs->DataLength;
@@ -101,6 +107,7 @@ static int qsv_dec_init_internal(AVCodecContext *avctx, AVPacket *avpkt)
         goto fail;
 
     q->initialized = 1;
+    av_log(avctx, AV_LOG_INFO, "QSV Decoder initialized\n");
 
     return ret;
 

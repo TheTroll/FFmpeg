@@ -53,64 +53,72 @@ int ff_qsv_dec_init(AVCodecContext *avctx, QSVDecContext *q)
 
     q->param.mfx.CodecId = ret;
 
-    if ((ret = MFXInit(impl, &ver, &q->session)) < 0)
-        return ff_qsv_error(ret);
-
-    // open hardware
+    if (!q->session)
     {
-        const char *cardpath = getenv("MFX_DRM_CARD");
-        int card;
-        VADisplay va_display;
-        int ver_maj = 1;
-        int ver_min = 0;
+      if ((ret = MFXInit(impl, &ver, &q->session)) < 0)
+          return ff_qsv_error(ret);
 
-        if (!cardpath)
-           cardpath = "/dev/dri/card0";
+      // open hardware
+      {
+          const char *cardpath = getenv("MFX_DRM_CARD");
+          int card;
+          VADisplay va_display;
+          int ver_maj = 1;
+          int ver_min = 0;
 
-        av_log(avctx, AV_LOG_INFO, "Opening VA Manually\n"); 
+          if (!cardpath)
+             cardpath = "/dev/dri/card0";
 
-        card = open(cardpath, O_RDWR); // primary card
-        if(card < 0){
-            av_log(avctx, AV_LOG_ERROR, "open %s error! Use MFX_DRM_CARD to specify the right card\n", cardpath);
-            return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
-        }
-        va_display = vaGetDisplayDRM(card);
-        if (!va_display)
-        {
-             close(card);
-             av_log(avctx, AV_LOG_ERROR, "vaGetDisplayDRM error!\n"); 
-             return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
-        }
+          av_log(avctx, AV_LOG_INFO, "Opening VA Manually\n"); 
 
-        ret=vaInitialize(va_display, &ver_maj, &ver_min);
-        if (ret){
-            av_log(avctx, AV_LOG_ERROR, "vaInitialize error! ret:%d\n", ret); 
-            return ret;
-        }
-        ret = MFXVideoCORE_SetHandle(q->session, MFX_HANDLE_VA_DISPLAY, (mfxHDL) va_display);
-            if (ret < 0){
-            av_log(avctx, AV_LOG_ERROR, "MFXVideoCORE_SetHandle error! ret:%d\n", ret); 
-            return ret;
-        }
+          card = open(cardpath, O_RDWR); // primary card
+          if(card < 0){
+              av_log(avctx, AV_LOG_ERROR, "open %s error! Use MFX_DRM_CARD to specify the right card\n", cardpath);
+              return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
+          }
+          va_display = vaGetDisplayDRM(card);
+          if (!va_display)
+          {
+               close(card);
+               av_log(avctx, AV_LOG_ERROR, "vaGetDisplayDRM error!\n"); 
+               return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
+          }
+
+          ret=vaInitialize(va_display, &ver_maj, &ver_min);
+          if (ret){
+              av_log(avctx, AV_LOG_ERROR, "vaInitialize error! ret:%d\n", ret); 
+              return ret;
+          }
+          ret = MFXVideoCORE_SetHandle(q->session, MFX_HANDLE_VA_DISPLAY, (mfxHDL) va_display);
+              if (ret < 0){
+              av_log(avctx, AV_LOG_ERROR, "MFXVideoCORE_SetHandle error! ret:%d\n", ret); 
+              return ret;
+          }
+      }
+
+      MFXQueryIMPL(q->session, &impl);
+
+      if (impl & MFX_IMPL_SOFTWARE)
+          av_log(avctx, AV_LOG_INFO,
+               "Using Intel QuickSync decoder software implementation.\n");
+      else if (impl & MFX_IMPL_HARDWARE)
+          av_log(avctx, AV_LOG_VERBOSE,
+                 "Using Intel QuickSync decoder hardware accelerated implementation.\n");
+      else
+          av_log(avctx, AV_LOG_INFO,
+                 "Unknown Intel QuickSync decoder implementation %d.\n", impl);
+
+      q->param.IOPattern  = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
+      q->param.AsyncDepth = q->async_depth;
     }
 
-    MFXQueryIMPL(q->session, &impl);
-
-    if (impl & MFX_IMPL_SOFTWARE)
-        av_log(avctx, AV_LOG_INFO,
-               "Using Intel QuickSync decoder software implementation.\n");
-    else if (impl & MFX_IMPL_HARDWARE)
-        av_log(avctx, AV_LOG_VERBOSE,
-               "Using Intel QuickSync decoder hardware accelerated implementation.\n");
-    else
-        av_log(avctx, AV_LOG_INFO,
-               "Unknown Intel QuickSync decoder implementation %d.\n", impl);
-
-    q->param.IOPattern  = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
-    q->param.AsyncDepth = q->async_depth;
-
     if ((ret = MFXVideoDECODE_DecodeHeader(q->session, bs, &q->param)) < 0)
+    {
+	bs->DataOffset = 0;
         return ff_qsv_error(ret);
+    }
+
+    av_log(avctx, AV_LOG_INFO, "MFXVideoDECODE_DecodeHeader successfull!\n");
 
     avctx->width                   = q->param.mfx.FrameInfo.CropW;
     avctx->height                  = q->param.mfx.FrameInfo.CropH;
