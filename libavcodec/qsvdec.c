@@ -65,13 +65,13 @@ int ff_qsv_dec_init(AVCodecContext *avctx, QSVDecContext *q)
         int ver_min = 0;
 
         if (!cardpath)
-           cardpath = "/dev/dri/card1";
+           cardpath = "/dev/dri/card0";
 
         av_log(avctx, AV_LOG_INFO, "Opening VA Manually\n"); 
 
         card = open(cardpath, O_RDWR); // primary card
         if(card < 0){
-            av_log(avctx, AV_LOG_ERROR, "open /dev/dri/card0 error!\n"); 
+            av_log(avctx, AV_LOG_ERROR, "open %s error! Use MFX_DRM_CARD to specify the right card\n", cardpath);
             return ff_qsv_error(MFX_ERR_DEVICE_FAILED);
         }
         va_display = vaGetDisplayDRM(card);
