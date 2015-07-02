@@ -121,7 +121,7 @@ fail:
     if (q->bsf)
         av_bitstream_filter_close(q->bsf);
 
-    return AVERROR(ret);
+    return ret;
 }
 
 static av_cold int qsv_dec_init(AVCodecContext *avctx)
