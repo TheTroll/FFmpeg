@@ -64,10 +64,7 @@ static int qsv_dec_init_internal(AVCodecContext *avctx, AVPacket *avpkt)
 
         tmp = av_malloc(avctx->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
         if (!tmp)
-        {
-            ret = AVERROR(ENOMEM);
             goto fail;
-        }
         q->extradata      = tmp;
         q->extradata_size = avctx->extradata_size;
         memcpy(q->extradata, avctx->extradata, avctx->extradata_size);
@@ -96,7 +93,6 @@ static int qsv_dec_init_internal(AVCodecContext *avctx, AVPacket *avpkt)
     tmp = av_malloc(header_size + sizeof(fake_idr));
     if (!tmp)
     {
-        ret = AVERROR(ENOMEM);
         av_log(avctx, AV_LOG_INFO, "av_malloc failed\n");
         goto fail;
     }
@@ -107,7 +103,7 @@ static int qsv_dec_init_internal(AVCodecContext *avctx, AVPacket *avpkt)
     memcpy(bs->Data + header_size, fake_idr, sizeof(fake_idr));
 
     ret = ff_qsv_dec_init(avctx, &q->qsv);
-    if (ret)
+    if (ret < 0)
         goto fail;
 
     q->initialized = 1;
@@ -121,7 +117,7 @@ fail:
     if (q->bsf)
         av_bitstream_filter_close(q->bsf);
 
-    return AVERROR(ret);
+    return AVERROR(ENOMEM);
 }
 
 static av_cold int qsv_dec_init(AVCodecContext *avctx)
@@ -144,7 +140,7 @@ static int qsv_dec_frame(AVCodecContext *avctx, void *data,
 
     if (!q->initialized) {
         ret = qsv_dec_init_internal(avctx, avpkt);
-        if (ret)
+        if (ret < 0)
             return ret;
     }
 
@@ -152,7 +148,7 @@ static int qsv_dec_frame(AVCodecContext *avctx, void *data,
     if (q->qsv.need_reinit && q->qsv.last_ret == MFX_ERR_MORE_DATA &&
         !q->qsv.nb_sync) {
         ret = ff_qsv_dec_reinit(avctx, &q->qsv);
-        if (ret)
+        if (ret < 0)
             return ret;
     }
 
