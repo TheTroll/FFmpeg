@@ -1997,7 +1997,8 @@ static int decode_video(InputStream *ist, AVPacket *pkt, int *got_output)
     // The following line may be required in some cases where there is no parser
     // or the parser does not has_b_frames correctly
     if (ist->st->codec->has_b_frames < ist->dec_ctx->has_b_frames) {
-        if (ist->dec_ctx->codec_id == AV_CODEC_ID_H264) {
+        if (ist->dec_ctx->codec_id == AV_CODEC_ID_H264 ||
+            ist->dec_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
             ist->st->codec->has_b_frames = ist->dec_ctx->has_b_frames;
         } else
             av_log_ask_for_sample(
